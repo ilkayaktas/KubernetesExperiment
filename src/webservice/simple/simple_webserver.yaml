@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: simple_webserver
+  labels:
+    run: simple_webserver
+spec:
+  replicas: 1
+  selector:
+    run: simple_webserver
+  template:
+    metadata:
+      labels:
+        run: simple_webserver
+    spec:
+      containers:
+        - name: simple_webserver
+          image: ilkayaktas/simple_webserver:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
