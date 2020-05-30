@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: simple-webserver-replicaset
+  labels:
+    release: stable
+spec:
+  replicas: 3
+  selector:    # Don’t specify a pod selector when defining a ReplicationController. Let Kubernetes extract it from the pod template. This will keep your YAML shorter and simpler.
+    matchLabels:
+      run: simple-webserver
+  template:
+    metadata:
+      name: simple-webserver-replicaset
+      labels:
+        run: simple-webserver
+    spec:
+      containers:
+        - name: simple-webserver-replicaset
+          image: ilkayaktas/simple_webserver:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP

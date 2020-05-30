@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webserver-manual
+  labels:
+    run: simple-webserver-manual
+spec:
+  nodeSelector:     # deploy pod to gpu=true labelled nodes
+    gpu: "true"
+  containers:
+    - name: simple-webserver-manual
+      image: ilkayaktas/simple_webserver:latest
+      ports:
+        - containerPort: 8088
+          protocol: TCP

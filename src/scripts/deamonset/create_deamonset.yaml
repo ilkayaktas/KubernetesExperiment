@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-deamon
+spec:
+  selector:
+    matchLabels:
+      app: log-retrieved
+  template:
+    metadata:
+      labels:
+        app: log-retrieved
+    spec:
+#      nodeSelector:
+#        disk: ssd
+      containers:
+        - name: log
+          image: ilkayaktas/log_retriever

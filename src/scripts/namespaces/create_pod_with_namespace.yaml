@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webserver
+  namespace: simple-namespace
+  labels:
+    run: simple-webserver
+spec:
+  containers:
+    - name: simple-webserver
+      image: ilkayaktas/simple_webserver:latest
+      ports:
+        - containerPort: 8088
+          protocol: TCP

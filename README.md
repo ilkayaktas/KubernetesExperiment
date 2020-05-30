@@ -63,26 +63,124 @@ All pods in a Kubernetes cluster reside in a single flat, shared, network-addres
 
 A Label is a key-value pair identifying a resource such as a Pod, Service, or Replication Controller: most commonly a Pod. Labels are used to identify a group or subset of resources for tasks such as assigning them to a Service. Services use label selectors to select the Pods they manage. For example, if a Pod is labeled “app = pc” and a Service “selector” is set as “app = pc” the Pod is represented by the Service. Service selectors are based on labels and not on the type of application they manage. For example, a Service could be representing a Pod running a hello-world application container with a specific label. Another Pod also running a hello-world container but with a label different than the Service selector expression would not be represented by the Service. And a third Pod running an application that is not a hello-world application but has the same label as the Service selector would also be represented by the same Service.
 
-**Namespaces**
+#### Selector
+
+A selector is a key-value expression to identify resources using matching labels. As discussed in the preceding subsection a Service selector expression “app = helloApp” would select all Pods with the label “app = helloApp”. While typically a Service defines a selector to select Pods a Service could be defined to not include a selector and be defined to abstract other kinds of back ends. Two kinds of selectors are supported: equality-based and set-based. A selector could be made of multiple requirements implying that multiple expressions (equality-based or set-based) separated by ',' could be specified. All of the requirements must be met by a matching resource such as a Pod for the resource to be selected. A resource such as a Pod could have additional labels, but the ones in the selector must be specified for the resource to be selected. The equality-based selector, which is more commonly used and also the one used in the book, supports =,!=,== operators, the = being synonymous to ==.
+
+#### Namespaces
 
 A namespace is a level above the name to demarcate a group of resources for a project or team to prevent name collisions. Resources within different namespaces could have the same name, but resources within a namespace have different names.
 
+Although namespaces allow you to isolate objects into distinct groups, which allows you to operate only on those belonging to the speci- fied namespace, they don’t provide any kind of isolation of running objects.
 
-**Selector**
+#### ReplicaSets
 
-A selector is a key-value expression to identify resources using matching labels. As discussed in the preceding subsection a Service selector expression “app = helloApp” would select all Pods with the label “app = helloApp”. While typically a Service defines a selector to select Pods a Service could be defined to not include a selector and be defined to abstract other kinds of back ends. Two kinds of selectors are supported: equality-based and set-based. A selector could be made of multiple requirements implying that multiple expressions (equality-based or set-based) separated by ',' could be specified. All of the requirements must be met by a matching resource such as a Pod for the resource to be selected. A resource such as a Pod could have additional labels, but the ones in the selector must be specified for the resource to be selected. The equality-based selector, which is more commonly used and also the one used in the book, supports =,!=,== operators, the = being synonymous to ==.
+A ReplicaSet is defined with fields, including a selector that specifies how to identify Pods it can acquire, a number of replicas indicating how many Pods it should be maintaining, and a pod template specifying the data of new Pods it should create to meet the number of replicas criteria. A ReplicaSet then fulfills its purpose by creating and deleting Pods as needed to reach the desired number. When a ReplicaSet needs to create new Pods, it uses its Pod template.
+
+A ReplicaSet ensures that a specified number of pod replicas are running at any given time. However, a Deployment is a higher-level concept that manages ReplicaSets and provides declarative updates to Pods along with a lot of other useful features. Therefore, we recommend using Deployments instead of directly using ReplicaSets, unless you require custom update orchestration or don’t require updates at all.
+
+```
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: simple_webserver_replicaset
+  labels:
+    release: stable
+spec:
+  replicas: 3
+  selector:    
+    matchLabels:
+      run: simple-webserver
+  template:
+    metadata:
+      labels:
+        run: frontend
+    spec:
+      containers:
+        - name: simple-webserver-manual
+          image: ilkayaktas/simple_webserver:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
+
+```
+
+When you post the file to the API server, Kubernetes creates a new ReplicaSet named simple_webserver_replicaset, which makes sure three pod instances always match the label selector run=simple-webserver. **When there aren’t enough pods, new pods will be created from the provided pod template**. The contents of the template are almost identical to the pod definition you created.
+
+The pod labels in the template must obviously match the label selector of the ReplicaSet; otherwise the controller would create new pods indefinitely, because spinning up a new pod wouldn’t bring the actual replica count any closer to the desired number of replicas. 
+
+The main improvements of ReplicaSets over ReplicationControllers are their more expressive label selectors. 
+
+#### Liveness Probe
+
+For pods running in production, you should always define a liveness probe. Without one, Kubernetes has no way of knowing whether your app is still alive or not. As long as the process is still running, Kubernetes will consider the container to be healthy.
+
+Be sure to check only the internals of the app and nothing influenced by an external factor. For example, a frontend web server’s liveness probe shouldn’t return a failure when the server can’t connect to the backend database. If the underlying cause is in the database itself, restarting the web server container will not fix the problem.
+
+Liveness probes shouldn’t use too many computational resources and shouldn’t take too long to complete. By default, the probes are executed relatively often and are only allowed one second to complete. 
+
+**httpGet**: The probe is considered successful if response code is 2xx or 3xx.
+
+```yaml
+spec:
+  containers:
+    - name: simple_webserver_unhealthy
+      image: ilkayaktas/simple_webserver_unhealthy:latest
+      ports:
+        - containerPort: 8088
+          protocol: TCP
+      livenessProbe:     # A liveness probe that will perform an HTTP GET
+        httpGet:				 #  
+          path: /        # The path to request in the HTTP request
+          port: 8088     # The network port the probe should connect to
+        initialDelaySeconds: 15
+        periodSeconds: 20          
+```
+
+ **tcpSocket**: The probe is considered successful if open a TCP connection to the specified port of the container.
+
+```yaml
+ livenessProbe:     # A liveness probe that will perform an tcp socket connection
+    tcpSocket:				 
+      port: 8088     
+    initialDelaySeconds: 15
+    periodSeconds: 20
+```
+
+**exec:** The probe is considered successful if executes an arbitrary command inside the container and checks the command’s exit status code. If the status code is 0.
+
+```yaml
+  livenessProbe:     # A liveness probe that will perform an exec
+    exec:				     
+      command:
+      - cat
+      - /tmp/healthy
+      
+```
+
+
+
+#### DaemonSets
+
+In certain cases exist when you want a pod to run on each and every node in the cluster and each node needs to run exactly one instance of the pod. Those cases include infrastructure-related pods that perform system-level operations. For example, you’ll want to run a log collector and a resource monitor on every node. Another good example is Kubernetes’ own kube-proxy process, which needs to run on all nodes to make services work. 
+
+It's job is to ensure that a pod matchingg its pod selector is running on each node.
+
+Running a cluster storage daemon, such as `glusterd`, `ceph`, on each node.
+
+Running a logs collection daemon on every node, such as `fluentd` or `filebeat`.
+
+Running a node monitoring daemon on every node, such as [Prometheus Node Exporter](https://github.com/prometheus/node_exporter), [Flowmill](https://github.com/Flowmill/flowmill-k8s/), [Sysdig Agent](https://docs.sysdig.com/), `collectd`, [Dynatrace OneAgent](https://www.dynatrace.com/technologies/kubernetes-monitoring/), [AppDynamics Agent](https://docs.appdynamics.com/display/CLOUD/Container+Visibility+with+Kubernetes), [Datadog agent](https://docs.datadoghq.com/agent/kubernetes/daemonset_setup/), [New Relic agent](https://docs.newrelic.com/docs/integrations/kubernetes-integration/installation/kubernetes-installation-configuration), Ganglia `gmond`, [Instana Agent](https://www.instana.com/supported-integrations/kubernetes-monitoring/) or [Elastic Metricbeat](https://www.elastic.co/guide/en/beats/metricbeat/current/running-on-kubernetes.html).
 
 **Deployments**
 
 
 
-**DaemonSets**
-
 **Events**
 
 **ServiceAccounts**
 
-**ReplicaSets**
+
 
 **Roles**
 

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webserver-unhealthy
+  labels:
+    run: simple-webserver-unhealthy
+spec:
+  containers:
+    - name: simple-webserver-unhealthy
+      image: ilkayaktas/simple_webserver_unhealthy:latest
+      ports:
+        - containerPort: 8088
+          protocol: TCP
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 8088
+        initialDelaySeconds: 15
+        periodSeconds: 20
