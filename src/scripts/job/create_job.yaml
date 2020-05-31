@@ -1,0 +1,12 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: simple-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          image: ilkayaktas/simple_job
+      restartPolicy: OnFailure
+  backoffLimit: 4

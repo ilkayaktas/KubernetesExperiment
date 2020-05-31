@@ -1,0 +1,17 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: simple-cronjob
+spec:
+  schedule: "0,15,30,45 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            run: periodic-batch-job
+        spec:
+          containers:
+            - name: main
+              image: ilkayaktas/simple_job
+            restartPolicy: OnFailure

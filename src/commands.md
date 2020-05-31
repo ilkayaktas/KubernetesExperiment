@@ -504,3 +504,23 @@ log-deamon   2         2         2       2            2           <none>        
 kubectl delete ds log-deamon # Deletes also pods created by this deamonset
 ```
 
+
+
+#### Create Job
+
+```bash
+kubectl apply -f create_job.yaml
+```
+
+
+
+```bash
+kubectl get pods
+NAME               READY   STATUS      RESTARTS   AGE
+simple-job-tpzs7   0/1     Completed   0          33s
+
+kubectl get jobs
+NAME         COMPLETIONS   DURATION   AGE
+simple-job   1/1           29s        37s
+```
+
