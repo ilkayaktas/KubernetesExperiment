@@ -431,7 +431,9 @@ kubectl delete all --all # Think twice before you run this command.
 
 
 
-#### Liveness Probe
+#### Liveness Probe / Readiness Probe
+
+Readiness probes are configured similarly to liveness probes. The only difference is that you use the `readinessProbe` field instead of the `livenessProbe` field.
 
 ```yaml
 spec:
@@ -450,7 +452,7 @@ spec:
 ```
 
 ```yaml
-  livenessProbe:     # A liveness probe that will perform an tcp socket connection
+  readinessProbe:     # A readiness probe that will perform an tcp socket connection
     tcpSocket:				  # The probe is considered successful if open a TCP connection to the specified port of the container
       port: 8088     # The network port the probe should connect to
     initialDelaySeconds: 15
@@ -524,3 +526,119 @@ NAME         COMPLETIONS   DURATION   AGE
 simple-job   1/1           29s        37s
 ```
 
+
+
+#### Create Deployment
+
+```bash
+kubectl apply -f create_deployment.yaml --record # record is necessary if you want to see history
+
+kubectl get deploy # list deployment
+NAME                READY   UP-TO-DATE   AVAILABLE   AGE
+simple-deployment   3/3     3            3           101s
+
+kubectl get rs  # list replicaset
+NAME                           DESIRED   CURRENT   READY   AGE
+simple-deployment-7bf6c68fdb   3         3         3       111s
+
+kubectl get pods # list pods
+NAME                                 READY   STATUS    RESTARTS   AGE
+simple-deployment-7bf6c68fdb-8fd78   1/1     Running   0          2m5s
+simple-deployment-7bf6c68fdb-9d5p9   1/1     Running   0          2m5s
+simple-deployment-7bf6c68fdb-gnr9q   1/1     Running   0          2m5s
+```
+
+
+
+#### Deployment Status
+
+```bash
+kubectl rollout status deployment simple-deployment
+
+Waiting for rollout to finish: 2 out of 3 new replicas have been updated.
+deployment "simple-deployment" successfully rolled out
+```
+
+
+
+#### Patch Deployment
+
+```bash
+kubectl patch deployment simple-deloyment -p '{"spec": {"minReadySeconds": 10}}'
+```
+
+The kubectl patch command is useful for modifying a single property or a limited number of properties of a resource without having to edit its defi- nition in a text editor.
+
+#### Cyclic Rest Request
+
+```bash
+while true; do curl http://192.168.56.101:32712; sleep 1; done
+```
+
+
+
+#### Rolling Update
+
+To trigger the actual rollout, you’ll change the image used in the single pod container to new version. Instead of editing the whole YAML of the Deployment object or using the patch command to change the image, you’ll use the kubectl set image command, which allows changing the image of any resource that contains a container (ReplicationControllers, ReplicaSets, Deployments, and so on). 
+
+```bash
+kubectl set image deployment simple-deployment simple-webserver-deployment=ilkayaktas/simple_webserver_update:latest
+```
+
+By changing the pod template in your Deployment resource, you’ve updated your app to a newer version—by changing a single field!
+
+You can update your version by updating the `yaml` file and than `kubectl apply`.
+
+Deployment ensures that only a certain number of Pods are down while they are being updated. By default, it ensures that at least 75% of the desired number of Pods are up (25% max unavailable).
+
+Deployment also ensures that only a certain number of Pods are created above the desired number of Pods. By default, it ensures that at most 125% of the desired number of Pods are up (25% max surge).
+
+
+
+#### Rollout History
+
+```bash
+kubectl rollout history deployment simple-deployment
+
+kubectl rollout history deployment simple-deployment --revision=2
+```
+
+
+
+#### Rollback To Specific Version
+
+```bash
+kubectl rollout undo deployment simple-deployment
+
+kubectl rollout undo deployment simple-deployment --to-revision=1
+```
+
+
+
+#### Pause-Resume Rollout
+
+```bash
+kubectl rollout pause deployment simple-deployment
+
+kubectl rollout resume deployment simple-deployment
+```
+
+You can pause a Deployment before triggering one or more updates and then resume it. Behaves live canary updates.
+
+
+
+#### Scaling Deployment
+
+```bash
+kubectl scale deployment simple-deployment --replicas=5
+```
+
+
+
+#### **Autoscaling Deployment**
+
+```shell
+kubectl autoscale deployment simple-deployment --min=5 --max=15 --cpu-percent=80
+```
+
+When POD cpu usage exceed %80, new pod is created until 15 Pods.

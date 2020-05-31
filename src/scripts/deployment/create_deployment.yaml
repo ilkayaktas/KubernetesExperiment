@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-deployment
+  labels:
+    app: simple-deployment
+spec:
+  replicas: 3
+  minReadySeconds: 10 # You used it to slow down the rollout, so you could see it was indeed performing a rolling update and not replacing all the pods at once. The main function of minReadySeconds is to prevent deploying malfunctioning versions, not slowing down a deployment for fun.
+  selector:
+    matchLabels:
+      app: simple-webserver-deployment
+  template:
+    metadata:
+      name: simple-webserver-manual
+      labels:
+        app: simple-webserver-deployment
+        run: simple-webserver-deployment
+    spec:
+      containers:
+        - name: simple-webserver-deployment
+          image: ilkayaktas/simple_webserver:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
