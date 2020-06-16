@@ -34,6 +34,20 @@ docker push ilkayaktas/simple_webserver
 
 
 
+#### Kubectl Configuration
+
+You can control kubernetes cluster from your local computer. 
+
+- Install kubectl.
+
+- Go to kubernetes master cluster and copy file content of **/etc/kubernetes/admin.conf**
+
+- Come back to your local machine. Paste content into **~/.kube/config**
+
+- Now, you can control kubernetes cluster from your local computer.
+
+  
+
 #### Kubernetes Cluster Info
 
 ```bash
