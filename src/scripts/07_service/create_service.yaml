@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iaktas-service
+  labels:
+    app: iaktas
+spec:
+  ports:
+    - port: 80
+      targetPort: 8088
+  selector:
+    app: iaktas

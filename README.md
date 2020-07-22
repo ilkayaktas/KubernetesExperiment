@@ -42,13 +42,112 @@ A Pod is a collection of containers that are collocated and form an atomic unit.
 
 #### Services
 
-A Service is the external interface for one or more Pods providing endpoint/s at which the application/s represented by the Service may be invoked. A Service is hosted at a single IP address but provides zero or more endpoints depending on the application/s interfaced by the Service. Services are connected to Pods using label selectors. Pods have label/s on them and a Service with a selector expression the same as a Pod label represents the Pod to an external client. **An external client does not know or need to know about the Pods represented by a Service. An external client only needs to know the name of the Service and the port at which a particular application is exposed.** The Service routes requests for an application based on a round- robin manner to one of the Pods selected using a label selector/. Thus, a Service is a high level abstraction for a collection of applications leaving the detail of which Pod to route a request to up to the Service. A Service could also be used for load balancing.
+A Service is the external interface for one or more Pods providing endpoint/s at which the application/s represented by the Service may be invoked. **The primary purpose of services is exposing groups of pods to other pods in the cluster, but you’ll usually also want to expose services externally.** A Service is hosted at a single IP address but provides zero or more endpoints depending on the application/s interfaced by the Service. Services are connected to Pods using label selectors. Pods have label/s on them and a Service with a selector expression the same as a Pod label represents the Pod to an external client. **An external client does not know or need to know about the Pods represented by a Service. An external client only needs to know the name of the Service and the port at which a particular application is exposed.** The Service routes requests for an application based on a round- robin manner to one of the Pods selected using a label selector/. Thus, a Service is a high level abstraction for a collection of applications leaving the detail of which Pod to route a request to up to the Service. A Service could also be used for load balancing.
 
 ![](./images/06-service-expose.png)
 
 When a service is created, it gets a static IP, which never changes during the lifetime of the service. Instead of connecting to pods directly, clients should connect to the service through its constant IP address. The service makes sure one of the pods receives the connection, regardless of where the pod is currently running (and what its IP address is).
 
 Services represent a static location for a group of one or more pods that all provide the same service. Requests coming to the IP and port of the service will be forwarded to the IP and port of one of the pods belonging to the service at that moment.
+
+**While defining service in yaml file, spec.selector is important because all pods with selector labels will be part of this service.**
+
+```apiVersion: v1
+kind: Service
+metadata:
+  name: iaktas-service
+  namespace: iaktas
+  labels:
+     app: iaktas
+spec:
+  ports:
+     - port: 80
+       targetPort: 8088
+  selector: # All pods with the app=iaktas-rs label will be part of this service.
+     app: iaktas-rs
+```
+
+![](./images/13-deployed-service.png)
+
+
+
+#### Service Discovery
+
+Each service information is located under pod environment variable. If pods are created before service, you should kill pods and restart again.
+
+``` 
+kubectl exec iaktas-replicaset-t6xgs env
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=iaktas-replicaset-t6xgs
+IAKTAS_SERVICE_PORT_80_TCP_PROTO=tcp
+KUBERNETES_SERVICE_HOST=10.233.0.1   // Kubernetes service
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+KUBERNETES_PORT_443_TCP_PORT=443
+IAKTAS_SERVICE_PORT_80_TCP_ADDR=10.233.30.112
+KUBERNETES_SERVICE_PORT=443
+KUBERNETES_SERVICE_PORT_HTTPS=443
+IAKTAS_SERVICE_SERVICE_HOST=10.233.30.112    // iaktas_service
+IAKTAS_SERVICE_PORT=tcp://10.233.30.112:80
+KUBERNETES_PORT_443_TCP_ADDR=10.233.0.1
+IAKTAS_SERVICE_SERVICE_PORT=80
+IAKTAS_SERVICE_PORT_80_TCP=tcp://10.233.30.112:80
+IAKTAS_SERVICE_PORT_80_TCP_PORT=80
+KUBERNETES_PORT=tcp://10.233.0.1:443
+KUBERNETES_PORT_443_TCP=tcp://10.233.0.1:443
+NODE_VERSION=14.5.0
+YARN_VERSION=1.22.4
+HOME=/root
+```
+
+Dashes in the service name are converted to underscores and all letters are uppercased when the service name is used as the prefix in the environment variable’s name.
+
+#### Service Endpoints
+
+An Endpoints resource (yes, plural) is a list of IP addresses and ports exposing a service. When a client connects to a service, the service proxy selects one of those IP and port pairs and redirects the incoming connection to the server listening at that location. **Regular service type is ClusterIP. There are also NodePort, LoadBalancer and Ingress available**
+
+```
+kubectl describe svc iaktas-service -n iaktas
+
+Name:              iaktas-service
+Namespace:         iaktas
+Labels:            app=iaktas
+Annotations:       kubectl.kubernetes.io/last-applied-configuration:
+                     {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"iaktas"},"name":"iaktas-service","namespace":"iaktas"},"...
+Selector:          app=iaktas-rs
+Type:              ClusterIP
+IP:                10.233.30.112
+Port:              <unset>  80/TCP
+TargetPort:        8088/TCP
+Endpoints:         10.233.69.61:8088,10.233.69.62:8088,10.233.73.30:8088 	// These are endpoints
+Session Affinity:  None
+Events:            <none>
+
+```
+
+```
+kubectl get endpoints -n iaktas
+
+NAME             ENDPOINTS                                               AGE
+iaktas-service   10.233.69.61:8088,10.233.69.62:8088,10.233.73.30:8088   76m
+
+```
+
+If you create a service without a pod selector, Kubernetes won’t even create the Endpoints resource (after all, without a selector, it can’t know which pods to include in the service).
+
+#### NodePort
+
+By creating a NodePort service, you make Kubernetes reserve a port on all its nodes (the same port number is used across all of them) and forward incoming connections to the pods that are part of the service.
+
+This is similar to a regular service (their actual type is ClusterIP ), but a NodePort service can be accessed not only through the service’s internal cluster IP, but also through any node’s IP and the reserved node port.
+
+![](./images/14-service-nodeport.png)
+
+#### LoadBalancer
+
+The load balancer will have its own unique, publicly accessible IP address and will redirect all connections to your service. You can thus access your service through the load balancer’s IP address.
+
+![](./images/15-service-loadbalancer.png)
 
 #### Network
 

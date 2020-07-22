@@ -1,6 +1,8 @@
 #### Build Docker Image
 ```bash
 docker build -t ilkayaktas/simple_webserver .
+
+docker build -t ilkayaktas/simple_webserver:1.0 -t ilkayaktas/simple_webserver:latest .
 ```
 
 
@@ -121,7 +123,75 @@ http://192.168.56.103:30338/
 
 My hostname is simple-webserver
 
+You can also check Service as below
 
+``` 
+kubectl exec simple-webserver -- curl -s 10.233.27.99
+```
+
+#### Service Discovery
+
+Each service information is located under pod environment variable. If pods are created before service, you should kill pods and restart again.
+
+``` 
+kubectl exec iaktas-replicaset-t6xgs env
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=iaktas-replicaset-t6xgs
+IAKTAS_SERVICE_PORT_80_TCP_PROTO=tcp
+KUBERNETES_SERVICE_HOST=10.233.0.1   // Kubernetes service
+KUBERNETES_PORT_443_TCP_PROTO=tcp
+KUBERNETES_PORT_443_TCP_PORT=443
+IAKTAS_SERVICE_PORT_80_TCP_ADDR=10.233.30.112
+KUBERNETES_SERVICE_PORT=443
+KUBERNETES_SERVICE_PORT_HTTPS=443
+IAKTAS_SERVICE_SERVICE_HOST=10.233.30.112    // iaktas_service
+IAKTAS_SERVICE_PORT=tcp://10.233.30.112:80
+KUBERNETES_PORT_443_TCP_ADDR=10.233.0.1
+IAKTAS_SERVICE_SERVICE_PORT=80
+IAKTAS_SERVICE_PORT_80_TCP=tcp://10.233.30.112:80
+IAKTAS_SERVICE_PORT_80_TCP_PORT=80
+KUBERNETES_PORT=tcp://10.233.0.1:443
+KUBERNETES_PORT_443_TCP=tcp://10.233.0.1:443
+NODE_VERSION=14.5.0
+YARN_VERSION=1.22.4
+HOME=/root
+```
+
+Dashes in the service name are converted to underscores and all letters are uppercased when the service name is used as the prefix in the environment variable’s name.
+
+#### Service Endpoints
+
+An Endpoints resource (yes, plural) is a list of IP addresses and ports exposing a service. When a client connects to a service, the service proxy selects one of those IP and port pairs and redirects the incoming connection to the server listening at that location.
+
+```
+kubectl describe svc iaktas-service -n iaktas
+
+Name:              iaktas-service
+Namespace:         iaktas
+Labels:            app=iaktas
+Annotations:       kubectl.kubernetes.io/last-applied-configuration:
+                     {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"iaktas"},"name":"iaktas-service","namespace":"iaktas"},"...
+Selector:          app=iaktas-rs
+Type:              ClusterIP
+IP:                10.233.30.112
+Port:              <unset>  80/TCP
+TargetPort:        8088/TCP
+Endpoints:         10.233.69.61:8088,10.233.69.62:8088,10.233.73.30:8088 	// These are endpoints
+Session Affinity:  None
+Events:            <none>
+
+```
+
+```
+kubectl get endpoints -n iaktas
+
+NAME             ENDPOINTS                                               AGE
+iaktas-service   10.233.69.61:8088,10.233.69.62:8088,10.233.73.30:8088   76m
+
+```
+
+If you create a service without a pod selector, Kubernetes won’t even create the Endpoints resource (after all, without a selector, it can’t know which pods to include in the service).
 
 #### Deploy an Application as Replication Controller (Deprecated), Access from outside and create replication
 

@@ -4,6 +4,7 @@ metadata:
   name: simple-webserver-manual
   labels:
     run: simple-webserver-manual
+    app: iaktas
 spec:
   containers:
     - name: simple-webserver-manual

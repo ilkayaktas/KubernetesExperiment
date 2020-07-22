@@ -1,0 +1,122 @@
+### STAGE 01
+# Create namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iaktas
+...
+# Create pod in namespace
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: iaktas-pod
+  namespace: iaktas
+  labels:
+    app: iaktas
+spec:
+  containers:
+    - name: iaktas-container
+      image: ilkayaktas/simple_webserver:latest
+      ports:
+        - containerPort: 8088
+          protocol: TCP
+...
+
+
+### STAGE 02
+# Create replicaset
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: iaktas-replicaset # Name of replicaset
+  namespace: iaktas
+  labels:
+    app: iaktas
+spec: # Declare what our replicaset should look like
+  replicas: 3
+  selector:    # Don’t specify a pod selector when defining a ReplicationController. Let Kubernetes extract it from the pod template. This will keep your YAML shorter and simpler.
+    matchLabels:
+      app: iaktas-rs # Eğer bu label ile eşleşen aşağıdaki spec'te tanımlanandan başka podlar varsa onları da replicaset kapsamında değerlendirir. Bunu kullanırken dikkatli olmak gerekir.
+  template:
+    metadata:
+      name: iaktas-replicaset-pod
+      labels: # These labels should match with .spec.selector.matchLabels
+        app: iaktas-rs 
+    spec: # Declaration of container
+      containers:
+        - name: iaktas-replicaset-container
+          image: ilkayaktas/simple_debainbased_webserver:latest
+          ports:
+            - containerPort: 8088
+              protocol: TCP
+...
+
+
+### STAGE 03
+# Create service (type ClusterIP)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iaktas-service
+  namespace: iaktas
+  labels:
+    app: iaktas
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8088
+  selector: # All pods with the app=iaktas-rs label will be part of this service.
+    app: iaktas-rs
+...
+# Can be accessed only through the service’s internal cluster IP because type is ClusterIP
+# Servis oluşturulduktan sonra aşağıdaki komut ile deneme yapılabilir.
+# kubectl exec iaktas-replicaset-l4m5c -n iaktas -- curl -s service-cluster-ip
+
+
+### STAGE 04
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iaktas-service-nodeport
+  namespace: iaktas
+  labels:
+    app: iaktas
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80 # This is the port of the service’s internal cluster IP.
+      targetPort: 8088 # This is the target port of the backing pods.
+      nodePort: 30123 # The service will be accessible through port 30123 of each of your cluster nodes.
+  selector: # All pods with the app=iaktas-rs label will be part of this service.
+    app: iaktas-rs
+...
+# Now you can access to your ports from outside cluster using 30123 port.
+
+
+### STAGE 05
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iaktas-service-loadbalancer
+  namespace: iaktas
+  labels:
+    app: iaktas
+spec:
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80 # This is the port of the service’s internal cluster IP.
+      targetPort: 8088 # This is the target port of the backing pods.
+  selector: # All pods with the app=iaktas-rs label will be part of this service.
+    app: iaktas-rs
+...
+# The load balancer will have its own unique, publicly accessible IP address and will redirect all connections to your service. 
+# You can thus access your service through the load balancer’s IP address.  
