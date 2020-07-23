@@ -145,9 +145,23 @@ This is similar to a regular service (their actual type is ClusterIP ), but a No
 
 #### LoadBalancer
 
-The load balancer will have its own unique, publicly accessible IP address and will redirect all connections to your service. You can thus access your service through the load balancer’s IP address.
+The load balancer will have its own unique, publicly accessible IP address and will redirect all connections to your service. You can thus access your service through the load balancer’s IP address. 
+
+If there are external IPs that route to one or more cluster nodes, Kubernetes Services can be exposed on those externalIPs. Traffic that ingresses into the cluster with the external IP (as destination IP), on the Service port, will be routed to one of the Service endpoints. **externalIPs are not managed by Kubernetes and are the responsibility of the cluster administrator.**
 
 ![](./images/15-service-loadbalancer.png)
+
+#### Ingress
+
+Ingresses operate at the application layer of the network stack (HTTP) and can provide features such as cookie-based session affinity and the like, which services can’t. When a client sends an HTTP request to the Ingress, the host and path in the request determine which service the request is forwarded to, as shown in figure 5.9.
+
+![](./images/16-service-ingress.png)
+
+You should confirm there’s an Ingress controller running in your cluster, so you can now create an Ingress resource.
+
+![](./images/17-service-ingress2.png)
+
+
 
 #### Network
 
