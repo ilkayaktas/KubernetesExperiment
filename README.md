@@ -161,6 +161,15 @@ You should confirm there’s an Ingress controller running in your cluster, so y
 
 ![](./images/17-service-ingress2.png)
 
+```
+# Install nginx ingress via helm
+helm repo add nginx-stable https://helm.nginx.com/stable
+
+helm repo update
+
+helm install my-release-name nginx-stable/nginx-ingress
+```
+
 
 
 #### Network
