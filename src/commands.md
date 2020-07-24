@@ -58,6 +58,24 @@ kubectl cluster-info
 
 
 
+#### Deploy Dashboard UI
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+```
+
+You can access Dashboard using the kubectl command-line tool by running the following command:
+
+```
+kubectl proxy
+```
+
+Kubectl will make Dashboard available at http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
+
+The UI can only be accessed from the machine where the command is executed. See kubectl proxy --help for more options.
+
+
+
 #### List Nodes
 ```bash
 kubectl get nodes

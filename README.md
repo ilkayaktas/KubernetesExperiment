@@ -170,7 +170,31 @@ helm repo update
 helm install my-release-name nginx-stable/nginx-ingress
 ```
 
+Ingress exposes HTTP and HTTPS routes from outside the cluster to services within the cluster. Traffic routing is controlled by rules defined on the Ingress resource. 
 
+An Ingress does not expose arbitrary ports or protocols. Exposing services other than HTTP and HTTPS to the internet typically uses a service of type Service.Type=NodePort or Service.Type=LoadBalancer.
+
+You must have an ingress controller to satisfy an Ingress. Only creating an Ingress resource has no effect. Istio, Nginx are some of them.
+
+#### Service Account
+
+A service account provides an identity for processes that run in a Pod.
+
+When you (a human) access the cluster (for example, using `kubectl`), you are authenticated by the apiserver as a particular User Account (currently this is usually `admin`, unless your cluster administrator has customized your cluster). Processes in containers inside pods can also contact the apiserver. When they do, they are authenticated as a particular Service Account (for example, `default`).
+
+You may use authorization plugins to [set permissions on service accounts](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#service-account-permissions).
+
+The service account has to exist at the time the pod is created, or it will be rejected.
+
+You cannot update the service account of an already created pod.
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-robot
+automountServiceAccountToken: false
+```
 
 #### Network
 
@@ -448,3 +472,23 @@ Name: Resource ismini ifade eder.
 kubectl run pod_name --image=ilkayaktas/mydockerimage
 
 Bu komut ile ilkayaktas/mydockerimage imajı dockerhub'dan indirilir ve pod_name ismi ile deploy edilir. kubectl get pods ile durumuna bakıldığında status önce Pending olarak görünür. Bu imajı indirme aşamasında olduğu anlamına gelir. Daha sonra status Running olarak güncellenir.
+
+#### Deploying the Dashboard UI
+
+The Dashboard UI is not deployed by default. To deploy it, run the following command:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+```
+
+To protect your cluster data, Dashboard deploys with a minimal RBAC configuration by default. Currently, Dashboard only supports logging in with a Bearer Token. To create a token for this demo, you can follow our guide on creating a sample user.
+
+You can access Dashboard using the kubectl command-line tool by running the following command:
+
+```
+kubectl proxy
+```
+
+Kubectl will make Dashboard available at http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
+
+The UI can only be accessed from the machine where the command is executed. See kubectl proxy --help for more options.
